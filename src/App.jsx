@@ -1,4 +1,3 @@
-import React from 'react'
 import {
 	BrowserRouter as Router,
 	Routes,
@@ -6,19 +5,39 @@ import {
 	Navigate,
 } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import Dashboard from './pages/Dashboard'
+import DashboardLayout from './components/layout/DashboardLayout'
+import StudentsPage from './pages/StudentsPage'
+import AttendancePage from './pages/AttendancePage'
+import TeachersPage from './pages/TeachersPage'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
+import GroupsPage from './pages/GroupsPage'
 
-const App = () => {
-	const user = useSelector(state => state.auth.user)
+function App() {
+	const token = useSelector(state => state.auth.token)
+
 	return (
 		<Router>
 			<Routes>
 				<Route
-					path='/'
-					element={user ? <Dashboard /> : <Navigate to='/login' />}
+					path='/login'
+					element={token ? <LoginPage /> : <Navigate to='/' replace />}
 				/>
-				<Route path='/login' element={<LoginPage />} />
+
+				{!token && (
+					<Route path='/' element={<DashboardLayout />}>
+						<Route index element={<HomePage />} />
+						<Route path='students' element={<StudentsPage />} />
+						<Route path='attendance' element={<AttendancePage />} />
+						<Route path='teachers' element={<TeachersPage />} />
+						<Route path='groups' element={<GroupsPage />} />
+					</Route>
+				)}
+
+				<Route
+					path='*'
+					element={<Navigate to={!token ? '/' : '/login'} replace />}
+				/>
 			</Routes>
 		</Router>
 	)
