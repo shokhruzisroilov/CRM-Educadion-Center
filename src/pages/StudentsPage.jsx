@@ -1,86 +1,75 @@
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+	fetchStudents,
+	addStudent,
+	editStudent,
+	archiveStudentById,
+	removeStudent,
+} from '../redux/studentSlice'
+import { fetchGroups } from '../redux/groupSlice' // 🔹 Guruhlarni olish
 
 const StudentsPage = () => {
-	const [students, setStudents] = useState([])
+	const dispatch = useDispatch()
+	const { students, loading } = useSelector(state => state.students)
+	const { groups } = useSelector(state => state.groups) // 🔹 Guruhlar
+
 	const [newStudent, setNewStudent] = useState({
 		full_name: '',
 		groupa_id: '',
-		is_archived: 'false',
+		is_archived: false,
 	})
+
 	const [editingId, setEditingId] = useState(null)
-	const [loading, setLoading] = useState(false)
-
-	// 🔄 Fake API
-	const fakeApi = {
-		data: [
-			{ id: 1, full_name: 'Ali Valiyev', groupa_id: 101, is_archived: 'false' },
-			{
-				id: 2,
-				full_name: 'Dilnoza Karimova',
-				groupa_id: 102,
-				is_archived: 'true',
-			},
-		],
-		get() {
-			return Promise.resolve({ data: this.data })
-		},
-		post(student) {
-			const newStudent = { ...student, id: Date.now() }
-			this.data.push(newStudent)
-			return Promise.resolve({ data: newStudent })
-		},
-		put(id, updated) {
-			this.data = this.data.map(s => (s.id === id ? { ...s, ...updated } : s))
-			return Promise.resolve()
-		},
-		delete(id) {
-			this.data = this.data.filter(s => s.id !== id)
-			return Promise.resolve()
-		},
-	}
-
-	const fetchStudents = async () => {
-		const res = await fakeApi.get()
-		setStudents(res.data)
-	}
 
 	useEffect(() => {
-		fetchStudents()
-	}, [])
+		dispatch(fetchStudents())
+		dispatch(fetchGroups()) // 🔹 Guruhlarni yuklash
+	}, [dispatch])
 
-	const handleSubmit = async e => {
+	const handleSubmit = e => {
 		e.preventDefault()
-		setLoading(true)
-		if (editingId) {
-			await fakeApi.put(editingId, newStudent)
-		} else {
-			await fakeApi.post(newStudent)
+		const payload = {
+			...newStudent,
+			groupa_id: Number(newStudent.groupa_id),
+			is_archived: Boolean(newStudent.is_archived),
 		}
-		setNewStudent({ full_name: '', groupa_id: '', is_archived: 'false' })
+
+		if (editingId) {
+			payload.id = editingId
+			dispatch(editStudent(payload)).then(() => dispatch(fetchStudents()))
+		} else {
+			dispatch(addStudent(payload)).then(() => dispatch(fetchStudents()))
+		}
+
+		setNewStudent({ full_name: '', groupa_id: '', is_archived: false })
 		setEditingId(null)
-		fetchStudents()
-		setLoading(false)
 	}
 
 	const handleEdit = student => {
-		setNewStudent(student)
+		setNewStudent({
+			full_name: student.full_name,
+			groupa_id: student.groupa_id,
+			is_archived: student.is_archived,
+		})
 		setEditingId(student.id)
 	}
 
-	const handleDelete = async id => {
+	const handleDelete = id => {
 		if (confirm("Haqiqatan ham o'chirmoqchimisiz?")) {
-			await fakeApi.delete(id)
-			fetchStudents()
+			dispatch(removeStudent(id))
+		}
+	}
+
+	const handleArchive = id => {
+		if (confirm("Arxivga o'tkazilsinmi?")) {
+			dispatch(archiveStudentById(id))
 		}
 	}
 
 	return (
 		<div>
 			<h2 className='text-2xl font-semibold text-gray-800 mb-4'>O'quvchilar</h2>
-			<p className='text-gray-600 mb-4'>
-				Bu yerda o'quvchilarni qo'shish, tahrirlash va arxivga o'tkazish mumkin.
-			</p>
-
 			<form onSubmit={handleSubmit} className='mb-6 space-y-2'>
 				<input
 					type='text'
@@ -92,20 +81,31 @@ const StudentsPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				/>
-				<input
-					type='number'
-					placeholder='Guruh ID'
+
+				{/* 🔽 Guruh select */}
+				<select
 					value={newStudent.groupa_id}
 					onChange={e =>
 						setNewStudent({ ...newStudent, groupa_id: e.target.value })
 					}
 					required
 					className='border px-4 py-2 rounded w-full'
-				/>
+				>
+					<option value=''>Guruh tanlang</option>
+					{groups.map(group => (
+						<option key={group.id} value={group.id}>
+							{group.name}
+						</option>
+					))}
+				</select>
+
 				<select
-					value={newStudent.is_archived}
+					value={newStudent.is_archived ? 'true' : 'false'}
 					onChange={e =>
-						setNewStudent({ ...newStudent, is_archived: e.target.value })
+						setNewStudent({
+							...newStudent,
+							is_archived: e.target.value === 'true',
+						})
 					}
 					className='border px-4 py-2 rounded w-full'
 				>
@@ -125,8 +125,9 @@ const StudentsPage = () => {
 				<thead>
 					<tr className='bg-gray-200 text-left'>
 						<th className='p-2'>#</th>
+						<th className='p-2'>ID</th>
 						<th className='p-2'>F.I.Sh</th>
-						<th className='p-2'>Guruh ID</th>
+						<th className='p-2'>Guruh</th>
 						<th className='p-2'>Holat</th>
 						<th className='p-2'>Amallar</th>
 					</tr>
@@ -135,10 +136,14 @@ const StudentsPage = () => {
 					{students.map((student, index) => (
 						<tr key={student.id} className='border-b'>
 							<td className='p-2'>{index + 1}</td>
+							<td className='p-2'>{student.id}</td>
 							<td className='p-2'>{student.full_name}</td>
-							<td className='p-2'>{student.groupa_id}</td>
 							<td className='p-2'>
-								{student.is_archived === 'true' ? (
+								{groups.find(g => g.id === student.groupa_id)?.name ||
+									student.groupa_id}
+							</td>
+							<td className='p-2'>
+								{student.is_archived ? (
 									<span className='text-red-500'>Arxivda</span>
 								) : (
 									<span className='text-green-600'>Aktiv</span>
@@ -150,6 +155,12 @@ const StudentsPage = () => {
 									className='bg-blue-500 text-white px-3 py-1 rounded'
 								>
 									✏️
+								</button>
+								<button
+									onClick={() => handleArchive(student.id)}
+									className='bg-yellow-500 text-white px-3 py-1 rounded'
+								>
+									📦
 								</button>
 								<button
 									onClick={() => handleDelete(student.id)}

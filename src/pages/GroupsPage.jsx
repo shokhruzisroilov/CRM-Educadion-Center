@@ -1,73 +1,72 @@
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+	fetchGroups,
+	addGroup,
+	editGroup,
+	removeGroup,
+} from '../redux/groupSlice'
+import { fetchTeachers } from '../redux/teacherSlice'
+import { getAuthData } from '../utils/tokenStorage'
 
 const GroupsPage = () => {
-	const [groups, setGroups] = useState([])
+	const dispatch = useDispatch()
+	const { groups, loading } = useSelector(state => state.groups)
+
 	const [newGroup, setNewGroup] = useState({
 		name: '',
-		user_id: '',
 		days: '',
 		teacher_id: '',
 	})
-	const [editingId, setEditingId] = useState(null)
 
-	const fakeApi = {
-		data: [
-			{
-				id: 1,
-				name: 'Frontend 1',
-				user_id: 101,
-				days: 'Dushanba, Chorshanba',
-				teacher_id: 1001,
-			},
-		],
-		get() {
-			return Promise.resolve({ data: this.data })
-		},
-		post(group) {
-			const newData = { ...group, id: Date.now() }
-			this.data.push(newData)
-			return Promise.resolve({ data: newData })
-		},
-		put(id, updated) {
-			this.data = this.data.map(t => (t.id === id ? { ...t, ...updated } : t))
-			return Promise.resolve()
-		},
-		delete(id) {
-			this.data = this.data.filter(t => t.id !== id)
-			return Promise.resolve()
-		},
-	}
-
-	const fetchGroups = async () => {
-		const res = await fakeApi.get()
-		setGroups(res.data)
-	}
+	const [editing, setEditing] = useState(null)
 
 	useEffect(() => {
-		fetchGroups()
-	}, [])
+		dispatch(fetchGroups())
+		dispatch(fetchTeachers())
+	}, [dispatch])
 
-	const handleSubmit = async e => {
+	const handleSubmit = e => {
 		e.preventDefault()
-		if (editingId) {
-			await fakeApi.put(editingId, newGroup)
-		} else {
-			await fakeApi.post(newGroup)
+
+		const auth = getAuthData() // 🔹 adminni localStorage`dan olamiz
+
+		const payload = {
+			name: newGroup.name,
+			user_id: Number(auth?.id), // 🔸 foydalanuvchi emas, admin id
+			days: newGroup.days,
+			teacher_id: Number(newGroup.teacher_id),
+			id: editing,
 		}
-		setNewGroup({ name: '', user_id: '', days: '', teacher_id: '' })
-		setEditingId(null)
-		fetchGroups()
+
+		if (editing) {
+			dispatch(editGroup(payload)).then(() => dispatch(fetchGroups()))
+		} else {
+			dispatch(addGroup(payload)).then(() => dispatch(fetchGroups()))
+		}
+
+		setNewGroup({
+			name: '',
+			days: '',
+			teacher_id: '',
+		})
+		setEditing(null)
 	}
 
 	const handleEdit = group => {
-		setNewGroup(group)
-		setEditingId(group.id)
+		setNewGroup({
+			name: group.name,
+			days: group.days,
+			teacher_id: group.teacher_id,
+		})
+		setEditing(group.id)
 	}
 
-	const handleDelete = async id => {
+	const handleDelete = group => {
 		if (confirm("Haqiqatan ham o'chirmoqchimisiz?")) {
-			await fakeApi.delete(id)
-			fetchGroups()
+			dispatch(removeGroup(group.id)).then(() => {
+				dispatch(fetchGroups())
+			})
 		}
 	}
 
@@ -88,16 +87,8 @@ const GroupsPage = () => {
 					className='border px-4 py-2 rounded w-full'
 				/>
 				<input
-					type='number'
-					placeholder='Foydalanuvchi ID'
-					value={newGroup.user_id}
-					onChange={e => setNewGroup({ ...newGroup, user_id: e.target.value })}
-					required
-					className='border px-4 py-2 rounded w-full'
-				/>
-				<input
 					type='text'
-					placeholder='Dars kunlari'
+					placeholder='Dars kunlari (masalan: Du-Ch-Pay)'
 					value={newGroup.days}
 					onChange={e => setNewGroup({ ...newGroup, days: e.target.value })}
 					required
@@ -115,16 +106,18 @@ const GroupsPage = () => {
 				/>
 				<button
 					type='submit'
+					disabled={loading}
 					className='bg-orange-500 text-white py-2 px-6 rounded hover:bg-orange-600'
 				>
-					{editingId ? 'Yangilash' : "+ Qo'shish"}
+					{editing ? 'Yangilash' : "+ Qo'shish"}
 				</button>
 			</form>
 
 			<table className='w-full border-collapse'>
-				<thead className='bg-gray-200'>
+				<thead className='bg-gray-200 text-left'>
 					<tr>
 						<th className='p-2'>#</th>
+						<th className='p-2'>ID</th>
 						<th className='p-2'>Nomi</th>
 						<th className='p-2'>Foydalanuvchi ID</th>
 						<th className='p-2'>Kunlar</th>
@@ -136,6 +129,7 @@ const GroupsPage = () => {
 					{groups.map((group, index) => (
 						<tr key={group.id} className='border-b'>
 							<td className='p-2'>{index + 1}</td>
+							<td className='p-2'>{group.id}</td>
 							<td className='p-2'>{group.name}</td>
 							<td className='p-2'>{group.user_id}</td>
 							<td className='p-2'>{group.days}</td>
@@ -148,7 +142,7 @@ const GroupsPage = () => {
 									✏️
 								</button>
 								<button
-									onClick={() => handleDelete(group.id)}
+									onClick={() => handleDelete(group)}
 									className='bg-red-500 text-white px-3 py-1 rounded'
 								>
 									🗑️

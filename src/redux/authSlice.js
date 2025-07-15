@@ -1,6 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { loginRequest } from '../services/authServices'
-import { getToken, setToken, clearToken } from '../utils/tokenStorage'
+import { setAuthData, getAuthData, clearAuthData } from '../utils/tokenStorage'
+
+const savedAuth = getAuthData()
 
 // 🔹 Login thunk
 export const loginUser = createAsyncThunk(
@@ -16,8 +18,10 @@ export const loginUser = createAsyncThunk(
 )
 
 const initialState = {
-	token: getToken() || null,
-	role: 'admin',
+	token: savedAuth?.token || null,
+	id: savedAuth?.id || null,
+	role: savedAuth?.role || null,
+	token_type: savedAuth?.token_type || 'bearer',
 	loading: false,
 	error: null,
 }
@@ -28,7 +32,10 @@ const authSlice = createSlice({
 	reducers: {
 		logout: state => {
 			state.token = null
-			clearToken()
+			state.role = null
+			state.id = null
+			state.token_type = null
+			clearAuthData()
 		},
 	},
 	extraReducers: builder => {
@@ -38,10 +45,15 @@ const authSlice = createSlice({
 				state.error = null
 			})
 			.addCase(loginUser.fulfilled, (state, action) => {
+				const { id, access_token, role, token_type } = action.payload
+
 				state.loading = false
-				state.token = action.payload.access_token
-				state.role = action.payload.role
-				setToken(action.payload.access_token)
+				state.token = access_token
+				state.role = role
+				state.id = id
+				state.token_type = token_type
+
+				setAuthData({ id, access_token, role, token_type })
 			})
 			.addCase(loginUser.rejected, (state, action) => {
 				state.loading = false

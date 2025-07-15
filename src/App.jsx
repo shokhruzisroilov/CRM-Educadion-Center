@@ -21,10 +21,10 @@ function App() {
 			<Routes>
 				<Route
 					path='/login'
-					element={token ? <LoginPage /> : <Navigate to='/' replace />}
+					element={!token ? <LoginPage /> : <Navigate to='/' replace />}
 				/>
 
-				{!token && (
+				{token && (
 					<Route path='/' element={<DashboardLayout />}>
 						<Route index element={<HomePage />} />
 						<Route path='students' element={<StudentsPage />} />
@@ -36,7 +36,7 @@ function App() {
 
 				<Route
 					path='*'
-					element={<Navigate to={!token ? '/' : '/login'} replace />}
+					element={<Navigate to={token ? '/' : '/login'} replace />}
 				/>
 			</Routes>
 		</Router>

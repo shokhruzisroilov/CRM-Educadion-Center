@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import {
+	fetchTeachers,
+	addTeacher,
+	editTeacher,
+	removeTeacher,
+} from '../redux/teacherSlice'
+import { fetchUsers } from '../redux/userSlice'
 
 const TeachersPage = () => {
-	const [teachers, setTeachers] = useState([])
+	const dispatch = useDispatch()
+	const { teachers, loading } = useSelector(state => state.teachers)
+	const { users } = useSelector(state => state.users)
+
 	const [newTeacher, setNewTeacher] = useState({
 		subject: '',
 		user_id: '',
@@ -10,65 +21,48 @@ const TeachersPage = () => {
 	})
 	const [editingId, setEditingId] = useState(null)
 
-	// 🔄 Fake API for testing
-	const fakeApi = {
-		data: [
-			{
-				id: 1,
-				subject: 'Matematika',
-				user_id: 1001,
-				date_time: '2025-07-14T08:00:00',
-				salary: 1500000,
-			},
-		],
-		get() {
-			return Promise.resolve({ data: this.data })
-		},
-		post(teacher) {
-			const newData = { ...teacher, id: Date.now() }
-			this.data.push(newData)
-			return Promise.resolve({ data: newData })
-		},
-		put(id, updated) {
-			this.data = this.data.map(t => (t.id === id ? { ...t, ...updated } : t))
-			return Promise.resolve()
-		},
-		delete(id) {
-			this.data = this.data.filter(t => t.id !== id)
-			return Promise.resolve()
-		},
-	}
-
-	const fetchTeachers = async () => {
-		const res = await fakeApi.get()
-		setTeachers(res.data)
-	}
-
 	useEffect(() => {
-		fetchTeachers()
-	}, [])
+		dispatch(fetchTeachers())
+		dispatch(fetchUsers()) // ✅ userlarni olish
+	}, [dispatch])
 
-	const handleSubmit = async e => {
+	const handleSubmit = e => {
 		e.preventDefault()
-		if (editingId) {
-			await fakeApi.put(editingId, newTeacher)
-		} else {
-			await fakeApi.post(newTeacher)
+		const data = {
+			...newTeacher,
+			user_id: Number(newTeacher.user_id),
+			salary: Number(newTeacher.salary),
 		}
+
+		if (editingId) {
+			dispatch(editTeacher({ id: editingId, data })).then(() => {
+				dispatch(fetchTeachers())
+			})
+		} else {
+			dispatch(addTeacher(data)).then(() => {
+				dispatch(fetchTeachers())
+			})
+		}
+
 		setNewTeacher({ subject: '', user_id: '', date_time: '', salary: '' })
 		setEditingId(null)
-		fetchTeachers()
 	}
 
 	const handleEdit = teacher => {
-		setNewTeacher(teacher)
+		setNewTeacher({
+			subject: teacher.subject,
+			user_id: teacher.user_id,
+			date_time: teacher.date_time,
+			salary: teacher.salary,
+		})
 		setEditingId(teacher.id)
 	}
 
-	const handleDelete = async id => {
+	const handleDelete = id => {
 		if (confirm("Haqiqatan ham o'chirmoqchimisiz?")) {
-			await fakeApi.delete(id)
-			fetchTeachers()
+			dispatch(removeTeacher(id)).then(() => {
+				dispatch(fetchTeachers())
+			})
 		}
 	}
 
@@ -77,11 +71,6 @@ const TeachersPage = () => {
 			<h2 className='text-2xl font-semibold text-gray-800 mb-4'>
 				O'qituvchilar
 			</h2>
-			<p className='text-gray-600 mb-4'>
-				Bu bo'limda o'qituvchilar bilan bog'liq ma'lumotlarni boshqarishingiz
-				mumkin.
-			</p>
-
 			<form onSubmit={handleSubmit} className='mb-6 space-y-2'>
 				<input
 					type='text'
@@ -93,16 +82,24 @@ const TeachersPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				/>
-				<input
-					type='number'
-					placeholder='Foydalanuvchi ID'
+
+				{/* 🔽 Foydalanuvchini tanlash select orqali */}
+				<select
 					value={newTeacher.user_id}
 					onChange={e =>
 						setNewTeacher({ ...newTeacher, user_id: e.target.value })
 					}
 					required
 					className='border px-4 py-2 rounded w-full'
-				/>
+				>
+					<option value=''>Foydalanuvchini tanlang</option>
+					{users.map(user => (
+						<option key={user.id} value={user.id}>
+							{user.username || user.full_name || `User ${user.id}`}
+						</option>
+					))}
+				</select>
+
 				<input
 					type='datetime-local'
 					value={newTeacher.date_time}
@@ -124,16 +121,19 @@ const TeachersPage = () => {
 				/>
 				<button
 					type='submit'
+					disabled={loading}
 					className='bg-orange-500 text-white py-2 px-6 rounded hover:bg-orange-600'
 				>
 					{editingId ? 'Saqlash' : "+ Qo'shish"}
 				</button>
 			</form>
 
+			{/* Jadval */}
 			<table className='w-full border-collapse'>
-				<thead className='bg-gray-200'>
+				<thead className='bg-gray-200 text-left'>
 					<tr>
 						<th className='p-2'>#</th>
+						<th className='p-2'>ID</th>
 						<th className='p-2'>Fan</th>
 						<th className='p-2'>Foydalanuvchi ID</th>
 						<th className='p-2'>Boshlanish vaqti</th>
@@ -145,12 +145,15 @@ const TeachersPage = () => {
 					{teachers.map((teacher, index) => (
 						<tr key={teacher.id} className='border-b'>
 							<td className='p-2'>{index + 1}</td>
+							<td className='p-2'>{teacher.id}</td>
 							<td className='p-2'>{teacher.subject}</td>
 							<td className='p-2'>{teacher.user_id}</td>
 							<td className='p-2'>
 								{new Date(teacher.date_time).toLocaleString()}
 							</td>
-							<td className='p-2'>{teacher.salary.toLocaleString()} so'm</td>
+							<td className='p-2'>
+								{Number(teacher.salary).toLocaleString()} so'm
+							</td>
 							<td className='p-2 space-x-2'>
 								<button
 									onClick={() => handleEdit(teacher)}

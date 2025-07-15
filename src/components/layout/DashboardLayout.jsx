@@ -3,11 +3,15 @@ import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../../redux/authSlice'
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
+import { getAuthData } from '../../utils/tokenStorage'
 
 const DashboardLayout = () => {
 	const dispatch = useDispatch()
-	const role = useSelector(state => state.auth.role)
+	const reduxRole = useSelector(state => state.auth.role)
 	const [sidebarOpen, setSidebarOpen] = useState(false)
+
+	// 🔸 LocalStorage dan role ni olib Redux bilan birlashtiramiz
+	const role = reduxRole || getAuthData()?.role
 
 	const isAdmin = role === 'admin'
 	const isTeacher = role === 'teacher'
@@ -16,29 +20,24 @@ const DashboardLayout = () => {
 	const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
 	return (
-		<div className='flex min-h-screen bg-gray-100'>
+		<div className='flex h-full bg-gray-100'>
 			{/* Sidebar */}
 			<aside
-				className={`fixed min-h-screen md:static z-40 md:z-auto top-0 left-0 h-full w-64 bg-white shadow-md p-4 transform ${
+				className={`fixed md:static z-40 md:z-auto top-0 left-0 min-h-screen w-64 bg-white shadow-md p-4 transform ${
 					sidebarOpen ? 'translate-x-0' : '-translate-x-full'
 				} transition-transform duration-300 ease-in-out md:translate-x-0`}
 			>
 				<div className='flex justify-between items-center mb-6'>
-					<h2 className='text-2xl font-bold text-orange-500'>Maktab</h2>
+					<h2 className='text-2xl font-bold text-orange-500'>
+						Learning Center
+					</h2>
 					<button className='md:hidden text-gray-700' onClick={toggleSidebar}>
 						<X />
 					</button>
 				</div>
 
 				<nav className='flex flex-col space-y-3'>
-					<NavLink
-						to='/'
-						className={({ isActive }) =>
-							isActive
-								? 'text-white bg-orange-500 px-4 py-2 rounded'
-								: 'text-gray-700 hover:text-orange-500 px-4 py-2 rounded'
-						}
-					>
+					<NavLink to='/' className={navClass}>
 						Bosh sahifa
 					</NavLink>
 

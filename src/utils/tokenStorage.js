@@ -1,3 +1,20 @@
-export const getToken = () => localStorage.getItem('token')
-export const setToken = token => localStorage.setItem('token', token)
-export const clearToken = () => localStorage.removeItem('token')
+export const setAuthData = ({ id, access_token, role, token_type }) => {
+	localStorage.setItem(
+		'auth',
+		JSON.stringify({
+			id,
+			token: access_token,
+			role,
+			token_type,
+		})
+	)
+}
+
+export const getAuthData = () => {
+	const data = localStorage.getItem('auth')
+	return data ? JSON.parse(data) : null
+}
+
+export const clearAuthData = () => {
+	localStorage.removeItem('auth')
+}
