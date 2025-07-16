@@ -135,29 +135,30 @@ const GroupsPage = () => {
 					</tr>
 				</thead>
 				<tbody>
-					{groups.map((group, index) => (
-						<tr key={group.name} className='border-b'>
-							<td className='p-2'>{index + 1}</td>
-							<td className='p-2'>{group.id}</td>
-							<td className='p-2'>{group.name}</td>
-							<td className='p-2'>{group.days}</td>
-							<td className='p-2'>{group.teacher_id}</td>
-							<td className='p-2 space-x-2'>
-								<button
-									onClick={() => handleEdit(group)}
-									className='bg-blue-500 text-white px-3 py-1 rounded'
-								>
-									✏️
-								</button>
-								<button
-									onClick={() => handleDelete(group)}
-									className='bg-red-500 text-white px-3 py-1 rounded'
-								>
-									🗑️
-								</button>
-							</td>
-						</tr>
-					))}
+					{groups &&
+						groups.map((group, index) => (
+							<tr key={group.name} className='border-b'>
+								<td className='p-2'>{index + 1}</td>
+								<td className='p-2'>{group.id}</td>
+								<td className='p-2'>{group.name}</td>
+								<td className='p-2'>{group.days}</td>
+								<td className='p-2'>{group.teacher_id}</td>
+								<td className='p-2 space-x-2'>
+									<button
+										onClick={() => handleEdit(group)}
+										className='bg-blue-500 text-white px-3 py-1 rounded'
+									>
+										✏️
+									</button>
+									<button
+										onClick={() => handleDelete(group)}
+										className='bg-red-500 text-white px-3 py-1 rounded'
+									>
+										🗑️
+									</button>
+								</td>
+							</tr>
+						))}
 				</tbody>
 			</table>
 		</div>

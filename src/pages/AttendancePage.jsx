@@ -26,6 +26,10 @@ const AttendancePage = () => {
 	const [isEditing, setIsEditing] = useState(false)
 	const [editingId, setEditingId] = useState(null) // 🔹 update uchun ID saqlanadi
 
+	const auth = getAuthData()
+	const role = auth?.role
+	const isAdmin = role === 'admin'
+
 	useEffect(() => {
 		dispatch(fetchAttendance())
 		dispatch(fetchStudents())

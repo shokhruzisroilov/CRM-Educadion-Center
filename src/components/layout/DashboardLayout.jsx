@@ -49,11 +49,6 @@ const DashboardLayout = () => {
 							<NavLink to='/teachers' className={navClass}>
 								O'qituvchilar
 							</NavLink>
-						</>
-					)}
-
-					{(isAdmin || isTeacher) && (
-						<>
 							<NavLink to='/groups' className={navClass}>
 								Guruhlar
 							</NavLink>
@@ -62,6 +57,10 @@ const DashboardLayout = () => {
 							</NavLink>
 						</>
 					)}
+
+					{/* {(isAdmin || isTeacher) && <>
+					
+					</>} */}
 
 					<button
 						onClick={() => dispatch(logout())}
