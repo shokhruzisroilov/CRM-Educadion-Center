@@ -7,11 +7,13 @@ import {
 	removeTeacher,
 } from '../redux/teacherSlice'
 import { fetchUsers } from '../redux/userSlice'
+import { fetchGroups } from '../redux/groupSlice' // ✅ Guruhlarni olish
 
 const TeachersPage = () => {
 	const dispatch = useDispatch()
 	const { teachers, loading } = useSelector(state => state.teachers)
 	const { users } = useSelector(state => state.users)
+	const { groups } = useSelector(state => state.groups) // ✅ Guruhlar
 
 	const [newTeacher, setNewTeacher] = useState({
 		subject: '',
@@ -23,13 +25,19 @@ const TeachersPage = () => {
 
 	useEffect(() => {
 		dispatch(fetchTeachers())
-		dispatch(fetchUsers()) // ✅ userlarni olish
+		dispatch(fetchUsers())
+		dispatch(fetchGroups()) // ✅ Guruhlarni yuklash
 	}, [dispatch])
 
 	const handleSubmit = e => {
 		e.preventDefault()
+
+		// Tanlangan guruh obyektini topamiz
+		const selectedGroup = groups.find(g => g.id === Number(newTeacher.subject))
+
 		const data = {
 			...newTeacher,
+			subject: selectedGroup?.name || '', // ✅ subject = group.name
 			user_id: Number(newTeacher.user_id),
 			salary: Number(newTeacher.salary),
 		}
@@ -49,8 +57,11 @@ const TeachersPage = () => {
 	}
 
 	const handleEdit = teacher => {
+		// subject ni group nomidan id ga aylantiramiz
+		const selectedGroup = groups.find(g => g.name === teacher.subject)
+
 		setNewTeacher({
-			subject: teacher.subject,
+			subject: selectedGroup ? selectedGroup.id : '',
 			user_id: teacher.user_id,
 			date_time: teacher.date_time,
 			salary: teacher.salary,
@@ -66,24 +77,35 @@ const TeachersPage = () => {
 		}
 	}
 
+	const getUserName = id => {
+		const user = users.find(u => u.id === id)
+		return user ? user.full_name || user.username || `User ${id}` : `ID: ${id}`
+	}
+
 	return (
 		<div>
 			<h2 className='text-2xl font-semibold text-gray-800 mb-4'>
 				O'qituvchilar
 			</h2>
 			<form onSubmit={handleSubmit} className='mb-6 space-y-2'>
-				<input
-					type='text'
-					placeholder='Fan nomi'
+				{/* ✅ Guruh tanlash (fan) */}
+				<select
 					value={newTeacher.subject}
 					onChange={e =>
 						setNewTeacher({ ...newTeacher, subject: e.target.value })
 					}
 					required
 					className='border px-4 py-2 rounded w-full'
-				/>
+				>
+					<option value=''>Fan (guruh)ni tanlang</option>
+					{groups.map(group => (
+						<option key={group.id} value={group.id}>
+							{group.name}
+						</option>
+					))}
+				</select>
 
-				{/* 🔽 Foydalanuvchini tanlash select orqali */}
+				{/* Foydalanuvchini tanlash */}
 				<select
 					value={newTeacher.user_id}
 					onChange={e =>
@@ -92,12 +114,14 @@ const TeachersPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				>
-					<option value=''>Foydalanuvchini tanlang</option>
-					{users.map(user => (
-						<option key={user.id} value={user.id}>
-							{user.username || user.full_name || `User ${user.id}`}
-						</option>
-					))}
+					<option value=''>O'qituvchini tanlang</option>
+					{users
+						.filter(user => user.role === 'teacher')
+						.map(user => (
+							<option key={user.id} value={user.id}>
+								{user.full_name || user.username || `User ${user.id}`}
+							</option>
+						))}
 				</select>
 
 				<input
@@ -109,6 +133,7 @@ const TeachersPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				/>
+
 				<input
 					type='number'
 					placeholder='Maosh'
@@ -119,6 +144,7 @@ const TeachersPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				/>
+
 				<button
 					type='submit'
 					disabled={loading}
@@ -134,8 +160,8 @@ const TeachersPage = () => {
 					<tr>
 						<th className='p-2'>#</th>
 						<th className='p-2'>ID</th>
-						<th className='p-2'>Fan</th>
-						<th className='p-2'>Foydalanuvchi ID</th>
+						<th className='p-2'>Fan (guruh nomi)</th>
+						<th className='p-2'>O'qituvchi</th>
 						<th className='p-2'>Boshlanish vaqti</th>
 						<th className='p-2'>Maosh</th>
 						<th className='p-2'>Amallar</th>
@@ -147,7 +173,7 @@ const TeachersPage = () => {
 							<td className='p-2'>{index + 1}</td>
 							<td className='p-2'>{teacher.id}</td>
 							<td className='p-2'>{teacher.subject}</td>
-							<td className='p-2'>{teacher.user_id}</td>
+							<td className='p-2'>{getUserName(teacher.user_id)}</td>
 							<td className='p-2'>
 								{new Date(teacher.date_time).toLocaleString()}
 							</td>

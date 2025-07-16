@@ -24,6 +24,7 @@ const AttendancePage = () => {
 	})
 
 	const [isEditing, setIsEditing] = useState(false)
+	const [editingId, setEditingId] = useState(null) // 🔹 update uchun ID saqlanadi
 
 	useEffect(() => {
 		dispatch(fetchAttendance())
@@ -44,12 +45,13 @@ const AttendancePage = () => {
 		}
 
 		if (isEditing) {
+			payload.id = editingId // 🔹 ident uchun qo‘shiladi
 			await dispatch(editAttendance(payload))
 		} else {
 			await dispatch(addAttendance(payload))
 		}
 
-		await dispatch(fetchAttendance()) // <-- Bu qatorni qo‘shing
+		await dispatch(fetchAttendance())
 
 		setNewRecord({
 			date_time: '',
@@ -58,6 +60,7 @@ const AttendancePage = () => {
 			groupa_id: '',
 		})
 		setIsEditing(false)
+		setEditingId(null)
 	}
 
 	const handleEdit = record => {
@@ -67,12 +70,14 @@ const AttendancePage = () => {
 			status: record.status,
 			groupa_id: record.groupa_id,
 		})
+		setEditingId(record.id)
 		setIsEditing(true)
 	}
 
 	const handleDelete = record => {
 		if (window.confirm("Haqiqatan ham o'chirmoqchimisiz?")) {
-			dispatch(removeAttendance(record))
+			dispatch(removeAttendance({ id: record.id }))
+			dispatch(fetchAttendance())
 		}
 	}
 
@@ -168,7 +173,7 @@ const AttendancePage = () => {
 				</thead>
 				<tbody>
 					{records.map((r, index) => (
-						<tr key={index} className='border-b'>
+						<tr key={r.id} className='border-b'>
 							<td className='p-2'>{index + 1}</td>
 							<td className='p-2'>{r.date_time}</td>
 							<td className='p-2'>{getStudentName(r.student_id)}</td>

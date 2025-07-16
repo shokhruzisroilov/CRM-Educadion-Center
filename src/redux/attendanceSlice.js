@@ -62,25 +62,13 @@ const attendanceSlice = createSlice({
 				state.records.push(action.payload)
 			})
 			.addCase(editAttendance.fulfilled, (state, action) => {
-				const idx = state.records.findIndex(
-					r =>
-						r.user_id === action.payload.user_id &&
-						r.student_id === action.payload.student_id &&
-						r.date_time === action.payload.date_time &&
-						r.groupa_id === action.payload.groupa_id
-				)
-				if (idx !== -1) state.records[idx] = action.payload
+				const idx = state.records.findIndex(r => r.id === action.payload.id)
+				if (idx !== -1) {
+					state.records[idx] = action.payload
+				}
 			})
 			.addCase(removeAttendance.fulfilled, (state, action) => {
-				state.records = state.records.filter(
-					r =>
-						!(
-							r.user_id === action.payload.user_id &&
-							r.student_id === action.payload.student_id &&
-							r.date_time === action.payload.date_time &&
-							r.groupa_id === action.payload.groupa_id
-						)
-				)
+				state.records = state.records.filter(r => r.id !== action.payload.id)
 			})
 	},
 })

@@ -6,12 +6,13 @@ import {
 	editGroup,
 	removeGroup,
 } from '../redux/groupSlice'
-import { fetchTeachers } from '../redux/teacherSlice'
 import { getAuthData } from '../utils/tokenStorage'
+import { fetchUsers } from '../redux/userSlice'
 
 const GroupsPage = () => {
 	const dispatch = useDispatch()
 	const { groups, loading } = useSelector(state => state.groups)
+	const { users } = useSelector(state => state.users)
 
 	const [newGroup, setNewGroup] = useState({
 		name: '',
@@ -23,17 +24,17 @@ const GroupsPage = () => {
 
 	useEffect(() => {
 		dispatch(fetchGroups())
-		dispatch(fetchTeachers())
+		dispatch(fetchUsers())
 	}, [dispatch])
 
 	const handleSubmit = e => {
 		e.preventDefault()
 
-		const auth = getAuthData() // 🔹 adminni localStorage`dan olamiz
+		const auth = getAuthData()
 
 		const payload = {
 			name: newGroup.name,
-			user_id: Number(auth?.id), // 🔸 foydalanuvchi emas, admin id
+			user_id: Number(auth?.id),
 			days: newGroup.days,
 			teacher_id: Number(newGroup.teacher_id),
 			id: editing,
@@ -94,16 +95,25 @@ const GroupsPage = () => {
 					required
 					className='border px-4 py-2 rounded w-full'
 				/>
-				<input
-					type='number'
-					placeholder="O'qituvchi ID"
+				<select
 					value={newGroup.teacher_id}
 					onChange={e =>
 						setNewGroup({ ...newGroup, teacher_id: e.target.value })
 					}
 					required
 					className='border px-4 py-2 rounded w-full'
-				/>
+				>
+					<option value=''>O'qituvchini tanlang</option>
+					{users &&
+						users
+							.filter(user => user.role === 'teacher')
+							.map(user => (
+								<option key={user.id} value={user.id}>
+									{user.name}
+								</option>
+							))}
+				</select>
+
 				<button
 					type='submit'
 					disabled={loading}
@@ -119,7 +129,6 @@ const GroupsPage = () => {
 						<th className='p-2'>#</th>
 						<th className='p-2'>ID</th>
 						<th className='p-2'>Nomi</th>
-						<th className='p-2'>Foydalanuvchi ID</th>
 						<th className='p-2'>Kunlar</th>
 						<th className='p-2'>O'qituvchi ID</th>
 						<th className='p-2'>Amallar</th>
@@ -127,11 +136,10 @@ const GroupsPage = () => {
 				</thead>
 				<tbody>
 					{groups.map((group, index) => (
-						<tr key={group.id} className='border-b'>
+						<tr key={group.name} className='border-b'>
 							<td className='p-2'>{index + 1}</td>
 							<td className='p-2'>{group.id}</td>
 							<td className='p-2'>{group.name}</td>
-							<td className='p-2'>{group.user_id}</td>
 							<td className='p-2'>{group.days}</td>
 							<td className='p-2'>{group.teacher_id}</td>
 							<td className='p-2 space-x-2'>
